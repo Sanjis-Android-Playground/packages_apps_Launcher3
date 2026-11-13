@@ -334,6 +334,7 @@ constructor(@ApplicationContext private val encryptedContext: Context) {
         @JvmField val SEARCH_ENGINE = backedUpItem("pref_search_engine", "default")
         @JvmField val SEARCH_HISTORY = backedUpItem("pref_search_history", true)
         @JvmField val SPOTLIGHT_SUGGESTIONS = backedUpItem("pref_spotlight_suggestions", true)
+        @JvmField val SPOTLIGHT_CLIPBOARD = backedUpItem("pref_spotlight_clipboard", false)
         @JvmField val SWIPE_DOWN_SPOTLIGHT = backedUpItem("pref_swipe_down_spotlight", false)
         @JvmField val SEARCH_SECTION_ORDER = backedUpItem("pref_search_section_order", "")
         @JvmField val SEARCH_MAX_PER_SECTION = backedUpItem("pref_search_max_per_section", 4)

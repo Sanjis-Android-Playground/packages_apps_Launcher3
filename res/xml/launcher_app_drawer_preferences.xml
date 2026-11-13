@@ -253,6 +253,14 @@
                 launcher:iconSpaceReserved="false" />
 
             <SwitchPreferenceCompat
+                android:key="pref_spotlight_clipboard"
+                android:title="@string/search_pref_spotlight_clipboard"
+                android:summary="@string/search_pref_spotlight_clipboard_summary"
+                android:defaultValue="false"
+                android:persistent="true"
+                launcher:iconSpaceReserved="false" />
+
+            <SwitchPreferenceCompat
                 android:key="pref_search_history"
                 android:title="@string/search_history_title"
                 android:summary="@string/search_history_summary"

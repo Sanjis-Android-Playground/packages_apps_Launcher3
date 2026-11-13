@@ -909,10 +909,14 @@ public class SpotlightView extends AbstractFloatingView
             rows.add(Row.header(getContext().getString(R.string.spotlight_suggestions)));
             rows.add(Row.apps(apps));
         }
-        UniversalSearchResult link = clipboardLink();
-        if (link != null) {
-            rows.add(Row.header(getContext().getString(R.string.spotlight_clipboard_link)));
-            rows.add(Row.result(link));
+        if (LauncherPrefs.SPOTLIGHT_CLIPBOARD.get(getContext())) {
+            // Reading the clipboard makes Android show its own paste notice. Only do it when
+            // the user has explicitly asked for the clipboard link.
+            UniversalSearchResult link = clipboardLink();
+            if (link != null) {
+                rows.add(Row.header(getContext().getString(R.string.spotlight_clipboard_link)));
+                rows.add(Row.result(link));
+            }
         }
         UniversalSearchResult playing = nowPlaying();
         if (playing != null) {
