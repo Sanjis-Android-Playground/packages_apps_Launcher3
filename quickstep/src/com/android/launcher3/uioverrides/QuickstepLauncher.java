@@ -186,6 +186,7 @@ import com.android.launcher3.uioverrides.touchcontrollers.NoButtonNavbarToOvervi
 import com.android.launcher3.uioverrides.touchcontrollers.NoButtonQuickSwitchTouchController;
 import com.android.launcher3.uioverrides.touchcontrollers.PortraitStatesTouchController;
 import com.android.launcher3.uioverrides.touchcontrollers.QuickSwitchTouchController;
+import com.android.launcher3.uioverrides.touchcontrollers.SpotlightSwipeDownController;
 import com.android.launcher3.uioverrides.touchcontrollers.StatusBarTouchController;
 import com.android.launcher3.uioverrides.touchcontrollers.TaskViewDismissTouchController;
 import com.android.launcher3.uioverrides.touchcontrollers.TaskViewLaunchTouchController;
@@ -955,6 +956,7 @@ public class QuickstepLauncher extends Launcher implements RecentsViewContainer,
                 break;
         }
 
+        list.add(new SpotlightSwipeDownController(this));
         list.add(new StatusBarTouchController(this, () -> this.isInState(LauncherState.NORMAL)));
 
         if (enableExpressiveDismissTaskMotion()) {

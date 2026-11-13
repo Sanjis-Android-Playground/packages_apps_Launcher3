@@ -127,4 +127,17 @@
     <string name="search_section_recent_downloads">Recent downloads</string>
     <string name="search_recent_downloads_title">Recent downloads</string>
     <string name="search_recent_downloads_summary">Show recently downloaded files before typing</string>
+
+    <!-- Spotlight overlay -->
+    <string name="spotlight_hint">Search</string>
+    <string name="spotlight_voice">Voice search</string>
+    <string name="spotlight_clipboard_link">Link on Clipboard</string>
+    <string name="spotlight_open_link">Open Link</string>
+    <string name="spotlight_now_playing">Now Playing</string>
+    <string name="spotlight_suggestions">Suggestions</string>
+    <string name="spotlight_play">Play %1$s</string>
+    <string name="search_pref_spotlight_suggestions">Spotlight suggestions</string>
+    <string name="search_pref_spotlight_suggestions_summary">Suggested apps, a copied link and what\'s playing when Spotlight opens</string>
+    <string name="swipe_down_spotlight_title">Swipe down for search</string>
+    <string name="swipe_down_spotlight_summary">Swipe down on the home screen to open Spotlight. Swipe down from the top edge for notifications</string>
 </resources>

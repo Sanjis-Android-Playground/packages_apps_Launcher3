@@ -17,12 +17,11 @@
 package com.android.launcher3.qsb;
 
 import static com.android.launcher3.BaseActivity.EVENT_RESUMED;
-import static com.android.launcher3.LauncherState.ALL_APPS;
-import static com.android.launcher3.anim.AnimatorListeners.forSuccessCallback;
 
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.view.View;
 import android.widget.Toast;
 
 import com.android.launcher3.AbstractFloatingView;
@@ -62,13 +61,8 @@ final class UniversalSearchLauncher {
     private static void showSearch(Launcher launcher) {
         AbstractFloatingView.closeAllOpenViews(launcher);
         launcher.getOverlayManager().hideOverlay(true);
-        launcher.getAppsView().setUniversalSearchActive(true);
-        // Search shares the All Apps container, but should open directly from home.
-        launcher.getStateManager().goToState(ALL_APPS, true, forSuccessCallback(() -> {
-            if (launcher.isInState(ALL_APPS)
-                    && launcher.getAppsView().isUniversalSearchActive()) {
-                launcher.getAppsView().getSearchUiManager().focusSearchField();
-            }
-        }));
+        View anchor = launcher.getHotseat() == null ? null : launcher.getHotseat().getQsb();
+        // Spotlight is the home search surface; the All Apps drawer keeps its own app search.
+        launcher.openSearchFromPill(anchor);
     }
 }

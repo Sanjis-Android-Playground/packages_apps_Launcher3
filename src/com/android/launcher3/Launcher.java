@@ -131,6 +131,7 @@ import android.content.res.Configuration;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.Path;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Build;
@@ -140,6 +141,7 @@ import android.os.Process;
 import android.os.SystemClock;
 import android.os.Trace;
 import android.os.UserHandle;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.text.method.TextKeyListener;
 import android.util.FloatProperty;
@@ -150,6 +152,7 @@ import android.view.KeyEvent;
 import android.view.KeyboardShortcutGroup;
 import android.view.Menu;
 import android.view.MotionEvent;
+import android.view.DisplayCutout;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
@@ -225,6 +228,7 @@ import com.android.launcher3.pm.PinRequestHelper;
 import com.android.launcher3.popup.ArrowPopup;
 import com.android.launcher3.popup.PopupController;
 import com.android.launcher3.popup.SystemShortcut;
+import com.android.launcher3.search.universal.SpotlightView;
 import com.android.launcher3.smartspace.AtAGlanceView;
 import com.android.launcher3.statemanager.StateManager;
 import com.android.launcher3.statemanager.StateManager.StateHandler;
@@ -968,6 +972,9 @@ public class Launcher extends StatefulActivity<LauncherState>
     public void onActivityResult(
             final int requestCode, final int resultCode, final Intent data) {
         mPendingActivityRequestCode = -1;
+        if (SpotlightView.onActivityResult(this, requestCode, resultCode, data)) {
+            return;
+        }
         handleActivityResult(requestCode, resultCode, data);
     }
 
@@ -1729,6 +1736,76 @@ public class Launcher extends StatefulActivity<LauncherState>
         toggleAllApps(/* alreadyOnHome= */ true, focusSearch);
     }
 
+    /**
+     * Opens Spotlight over the home screen, growing out of the search pill or the given anchor.
+     * Called by the QSB/compact search bar's universal search action.
+     */
+    public void openSearchFromPill(View pill) {
+        if (pill == null) {
+            pill = mHotseat;
+        }
+        RectF from = new RectF();
+        if (pill != null && pill.getWidth() > 0 && pill.getHeight() > 0) {
+            int[] location = new int[2];
+            pill.getLocationInWindow(location);
+            from.set(location[0], location[1], location[0] + pill.getWidth(),
+                    location[1] + pill.getHeight());
+        } else if (mDragLayer != null) {
+            float centerX = mDragLayer.getWidth() / 2f;
+            float centerY = mDragLayer.getHeight() / 2f;
+            from.set(centerX, centerY, centerX, centerY);
+        }
+        AbstractFloatingView.closeAllOpenViews(this);
+        SpotlightView.show(this, from, false);
+    }
+
+    /**
+     * Where Spotlight grows out of and settles back into: the Dynamic Island while it shows
+     * something, otherwise the camera itself. Returns whether the island is showing.
+     */
+    public boolean spotlightAnchor(RectF out) {
+        Rect island = Rect.unflattenFromString(String.valueOf(Settings.Secure.getString(
+                getContentResolver(), "penguin_island_bounds")));
+        if (island != null && !island.isEmpty()) {
+            out.set(island);
+            return true;
+        }
+        islandBounds(out);
+        float radius = out.height() / 2f;
+        out.set(out.centerX() - radius, out.top, out.centerX() + radius, out.bottom);
+        return false;
+    }
+
+    /** Where the Dynamic Island rests: a pill hugging the camera at the top centre. */
+    public void islandBounds(RectF out) {
+        float density = getResources().getDisplayMetrics().density;
+        float height = 37 * density;
+        float centerX = mDragLayer.getWidth() / 2f;
+        float top = 11 * density;
+        WindowInsets insets = mDragLayer.getRootWindowInsets();
+        DisplayCutout cutout = insets != null ? insets.getDisplayCutout() : null;
+        if (cutout != null) {
+            // The lens itself: the cutout's bounding rect can span the whole status bar.
+            RectF camera = new RectF();
+            Path path = cutout.getCutoutPath();
+            if (path != null) {
+                path.computeBounds(camera, true);
+            }
+            if (camera.isEmpty() && !cutout.getBoundingRectTop().isEmpty()) {
+                camera.set(cutout.getBoundingRectTop());
+            }
+            if (!camera.isEmpty()) {
+                float pad = 3 * density;
+                height = camera.height() + 2 * pad;
+                centerX = camera.centerX();
+                top = camera.top - pad;
+            }
+        }
+        // iOS's idle island is about three and a half times as wide as it is tall.
+        float width = height * 3.4f;
+        out.set(centerX - width / 2f, top, centerX + width / 2f, top + height);
+    }
+
     private void toggleAllApps(boolean alreadyOnHome, boolean focusSearch) {
         if (!canOpenAllApps()) {
             return;
@@ -2206,6 +2283,9 @@ public class Launcher extends StatefulActivity<LauncherState>
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         TestLogging.recordKeyEvent(TestProtocol.SEQUENCE_MAIN, "Key event", event);
+        if (SpotlightView.handleEscape(this, event)) {
+            return true;
+        }
         return (event.getKeyCode() == KeyEvent.KEYCODE_HOME) || super.dispatchKeyEvent(event);
     }
 

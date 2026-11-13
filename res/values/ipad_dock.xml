@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     SPDX-FileCopyrightText: The PenguinOS Project
+     SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <string name="spotlight_clear_query">Clear search</string>
+    <string name="spotlight_top_hit">Top Hit</string>
+    <dimen name="ipad_dock_radius">28dp</dimen>
+    <dimen name="ipad_spotlight_radius">28dp</dimen>
+    <dimen name="ipad_dock_icon_gap">14dp</dimen>
+    <dimen name="ipad_dock_blur_margin">56dp</dimen>
+    <dimen name="spotlight_margin">12dp</dimen>
+    <dimen name="spotlight_field_height">66dp</dimen>
+    <dimen name="spotlight_card_radius">44dp</dimen>
+</resources>

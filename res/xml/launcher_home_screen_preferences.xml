@@ -385,6 +385,13 @@
             launcher:iconSpaceReserved="false" />
 
         <SwitchPreferenceCompat
+            android:key="pref_swipe_down_spotlight"
+            android:title="@string/swipe_down_spotlight_title"
+            android:summary="@string/swipe_down_spotlight_summary"
+            android:defaultValue="false"
+            launcher:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
             android:key="pref_search_bar_blur"
             android:title="@string/search_bar_blur_title"
             android:summary="@string/search_bar_blur_summary"
