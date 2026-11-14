@@ -341,7 +341,7 @@
 
         <activity android:name=".widgets.TileWidgetConfigActivity"
             android:exported="true"
-            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar" />
+            android:theme="@style/TileWidgetConfigTheme" />
 
         <receiver
             android:name=".widgets.WifiWidgetProvider"

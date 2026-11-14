@@ -725,6 +725,13 @@
         <item name="pageIndicatorDotColor">@color/page_indicator_dot_color_light</item>
     </style>
 
+    <!-- Modern, launcher themed configuration screen for the Rising tile widgets. -->
+    <style name="TileWidgetConfigTheme" parent="@style/Theme.Material3.DynamicColors.DayNight">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowLightStatusBar">?android:attr/isLightTheme</item>
+    </style>
+
     <style name="QsbIconTint">
         <item name="qsbIconTintPrimary">@color/qsb_primary</item>
         <item name="qsbIconTintQuaternary">@color/qsb_quaternary</item>

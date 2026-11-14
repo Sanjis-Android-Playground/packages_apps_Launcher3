@@ -19,17 +19,21 @@ import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
-import android.widget.RadioGroup
 
 import androidx.appcompat.app.AppCompatActivity
 
 import com.android.launcher3.R
+import com.google.android.material.card.MaterialCardView
+import com.google.android.material.color.MaterialColors
 
 /** Lets the user pick the shape of a Rising tile widget. */
 class TileWidgetConfigActivity : AppCompatActivity() {
 
     private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
+    private lateinit var shapeCards: Map<String, MaterialCardView>
+    private var selectedShape = WidgetShapes.ROUNDED
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,11 +49,22 @@ class TileWidgetConfigActivity : AppCompatActivity() {
         }
 
         setContentView(R.layout.activity_tile_widget_config)
-        val shapeGroup = findViewById<RadioGroup>(R.id.tile_shape_group)
-        shapeGroup.check(shapeToRadioId(WidgetShapes.getShape(this, appWidgetId)))
+        shapeCards = mapOf(
+            WidgetShapes.ROUNDED to findViewById(R.id.shape_rounded),
+            WidgetShapes.SQUIRCLE to findViewById(R.id.shape_squircle),
+            WidgetShapes.CIRCLE to findViewById(R.id.shape_circle),
+            WidgetShapes.SQUARE to findViewById(R.id.shape_square),
+        )
+        selectedShape = WidgetShapes.getShape(this, appWidgetId)
+        shapeCards.forEach { (shape, card) ->
+            card.contentDescription = getShapeLabel(shape)
+            card.setOnClickListener { select(shape) }
+        }
+        select(selectedShape)
+
         findViewById<Button>(R.id.btn_cancel).setOnClickListener { finish() }
         findViewById<Button>(R.id.btn_apply).setOnClickListener {
-            WidgetShapes.setShape(this, appWidgetId, radioIdToShape(shapeGroup.checkedRadioButtonId))
+            WidgetShapes.setShape(this, appWidgetId, selectedShape)
             WidgetRefreshReceiver.refreshAll(this)
             setResult(
                 Activity.RESULT_OK,
@@ -59,21 +74,32 @@ class TileWidgetConfigActivity : AppCompatActivity() {
         }
     }
 
-    private fun shapeToRadioId(shape: String): Int {
-        return when (shape) {
-            WidgetShapes.SQUIRCLE -> R.id.shape_squircle
-            WidgetShapes.CIRCLE -> R.id.shape_circle
-            WidgetShapes.SQUARE -> R.id.shape_square
-            else -> R.id.shape_rounded
+    private fun select(shape: String) {
+        selectedShape = shape
+        val selectedColor = MaterialColors.getColor(
+            shapeCards.getValue(shape), com.google.android.material.R.attr.colorPrimary
+        )
+        val outlineColor = MaterialColors.getColor(
+            shapeCards.getValue(shape), com.google.android.material.R.attr.colorOutline
+        )
+        val selectedWidth = (3 * resources.displayMetrics.density).toInt()
+        val defaultWidth = (1 * resources.displayMetrics.density).toInt()
+        shapeCards.forEach { (cardShape, card) ->
+            val isSelected = cardShape == shape
+            card.strokeColor = if (isSelected) selectedColor else outlineColor
+            card.strokeWidth = if (isSelected) selectedWidth else defaultWidth
+            card.isChecked = isSelected
         }
     }
 
-    private fun radioIdToShape(radioId: Int): String {
-        return when (radioId) {
-            R.id.shape_squircle -> WidgetShapes.SQUIRCLE
-            R.id.shape_circle -> WidgetShapes.CIRCLE
-            R.id.shape_square -> WidgetShapes.SQUARE
-            else -> WidgetShapes.ROUNDED
-        }
+    private fun getShapeLabel(shape: String): CharSequence {
+        return getString(
+            when (shape) {
+                WidgetShapes.SQUIRCLE -> R.string.widget_tile_shape_squircle
+                WidgetShapes.CIRCLE -> R.string.widget_tile_shape_circle
+                WidgetShapes.SQUARE -> R.string.widget_tile_shape_square
+                else -> R.string.widget_tile_shape_rounded
+            }
+        )
     }
 }
