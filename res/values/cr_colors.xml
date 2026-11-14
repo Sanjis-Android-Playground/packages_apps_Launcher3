@@ -49,4 +49,8 @@
 
     <!-- Quickspace OOS clock style, hour digits -->
     <color name="quickspace_clock_hour_color">#FFFE4543</color>
+
+    <!-- Widgets -->
+    <color name="battery_device_primary_color">@android:color/system_neutral1_900</color>
+    <color name="battery_device_secondary_color">@android:color/system_neutral1_50</color>
 </resources>
