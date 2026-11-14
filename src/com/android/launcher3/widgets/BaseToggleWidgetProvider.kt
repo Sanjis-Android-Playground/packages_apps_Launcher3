@@ -19,48 +19,33 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
-import android.widget.RemoteViews
-
-import kotlinx.coroutines.*
 
 abstract class BaseToggleWidgetProvider : AppWidgetProvider() {
 
     abstract fun getToggleActionIntent(context: Context, appWidgetId: Int): Intent
     abstract fun isServiceActive(context: Context): Boolean
     abstract fun getLayoutId(): Int
-    abstract fun updateWidget(context: Context) 
-    abstract fun onUpdate(context: Context) 
+    abstract fun updateWidget(context: Context)
+    abstract fun onUpdate(context: Context)
 
-    private var job: Job? = null
-
-    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+    override fun onUpdate(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetIds: IntArray
+    ) {
+        super.onUpdate(context, appWidgetManager, appWidgetIds)
         updateWidget(context)
         onUpdate(context)
-        schedulePolling(context)
+        WidgetRefreshReceiver.register(context)
     }
-    
+
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
-        schedulePolling(context)
+        WidgetRefreshReceiver.register(context)
     }
 
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
-        stopPolling()
-    }
-
-    protected fun schedulePolling(context: Context) {
-        stopPolling()
-        job = CoroutineScope(Dispatchers.Default).launch {
-            while (isActive) {
-                updateWidget(context)
-                delay(1250L)
-            }
-        }
-    }
-    
-    private fun stopPolling() {
-        job?.cancel()
-        job = null
+        WidgetRefreshReceiver.unregisterIfUnused(context)
     }
 }

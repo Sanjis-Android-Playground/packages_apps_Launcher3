@@ -25,6 +25,12 @@ import com.android.launcher3.R
 
 class BluetoothToggleWidgetProvider : BaseToggleTileWidgetProvider() {
 
+    companion object {
+        fun refresh(context: Context) {
+            BluetoothToggleWidgetProvider().updateWidget(context)
+        }
+    }
+
     private var appWidgetIds: IntArray? = null
 
     override fun getLayoutId() = R.layout.widget_bluetooth_tile

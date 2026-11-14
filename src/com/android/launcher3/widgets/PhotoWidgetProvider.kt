@@ -17,14 +17,14 @@ package com.android.launcher3.widgets
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
-import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.*
 import android.os.UserHandle
 import android.provider.Settings
-import android.widget.RemoteViews
 import android.view.View
+import android.widget.RemoteViews
 
 import com.android.launcher3.R
 
@@ -32,79 +32,55 @@ import java.io.ByteArrayOutputStream
 
 class PhotoWidgetProvider : BaseWidgetProvider() {
 
-    private var appWidgetIds: IntArray? = null
-    private var remoteViews: RemoteViews? = null
-
     companion object {
         const val ACTION_SELECT_PHOTO = "com.android.launcher3.action.SELECT_PHOTO"
         const val MAX_IMAGE_SIZE = 500
-    }
 
-    private var previousPhotoFilePath: String? = null
+        fun refresh(context: Context) {
+            PhotoWidgetProvider().onWidgetUpdate(context)
+        }
+    }
 
     override fun getLayoutId(): Int = R.layout.widget_photo
 
     override fun onWidgetUpdate(context: Context) {
-        if (appWidgetIds == null) {
-            appWidgetIds = AppWidgetManager.getInstance(context).getAppWidgetIds(
-                android.content.ComponentName(context, PhotoWidgetProvider::class.java)
-            )
-        }
-        if (remoteViews == null) {
-            remoteViews = RemoteViews(context.packageName, getLayoutId())
-        }
         update(context)
-    }
-
-    override suspend fun performScheduledTask(context: Context) {
-        update(context)
-    }
-
-    override fun onReceive(context: Context, intent: Intent) {
-        super.onReceive(context, intent)
-        if (intent.action == "ACTION_WIDGET_CLICK") {
-            update(context)
-            schedulePolling(context)
-        }
     }
 
     private fun update(context: Context) {
-        if (appWidgetIds == null || remoteViews == null) return
-        val localRemoteViews = remoteViews
-        val photoFilePath = Settings.System.getString(context.contentResolver, "home_photo_widget_uri")
-        val isGrayscale = Settings.System.getIntForUser(context.contentResolver, "home_photo_widget_grayscale", 0, UserHandle.USER_CURRENT) == 1
-        if (photoFilePath == previousPhotoFilePath && !photoFilePath.isNullOrEmpty()) return
-        previousPhotoFilePath = photoFilePath
-        appWidgetIds!!.forEach { widgetId ->
-            localRemoteViews?.apply {
-                if (!photoFilePath.isNullOrEmpty()) {
-                    val bitmap = BitmapFactory.decodeFile(photoFilePath)
-                    bitmap?.let { loadedBitmap ->
-                        val processedBitmap = if (isGrayscale) {
-                            applyGrayscale(loadedBitmap)
-                        } else {
-                            loadedBitmap
-                        }
-                        val compressedBitmap = compress(processedBitmap)
-                        setImageViewBitmap(R.id.widget_image, compressedBitmap)
-                        if (processedBitmap != loadedBitmap) loadedBitmap.recycle()
-                        processedBitmap.recycle()
-                        setViewVisibility(R.id.widget_image, View.VISIBLE)
-                        setViewVisibility(R.id.widget_add_photo_text, View.GONE)
-                    }
+        val appWidgetManager = AppWidgetManager.getInstance(context)
+        val appWidgetIds = appWidgetManager.getAppWidgetIds(
+            ComponentName(context, PhotoWidgetProvider::class.java)
+        )
+        if (appWidgetIds.isEmpty()) return
+        val photoFilePath = Settings.System.getString(
+            context.contentResolver, "home_photo_widget_uri"
+        )
+        val isGrayscale = Settings.System.getIntForUser(
+            context.contentResolver, "home_photo_widget_grayscale", 0, UserHandle.USER_CURRENT
+        ) == 1
+        val bitmap = photoFilePath
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { BitmapFactory.decodeFile(it) }
+            ?.let { if (isGrayscale) applyGrayscale(it) else it }
+            ?.let { compress(it) }
+        appWidgetIds.forEach { appWidgetId ->
+            val remoteViews = RemoteViews(context.packageName, getLayoutId()).apply {
+                if (bitmap != null) {
+                    setImageViewBitmap(R.id.widget_image, bitmap)
+                    setViewVisibility(R.id.widget_image, View.VISIBLE)
+                    setViewVisibility(R.id.widget_add_photo_text, View.GONE)
                 } else {
                     setViewVisibility(R.id.widget_image, View.GONE)
                     setViewVisibility(R.id.widget_add_photo_text, View.VISIBLE)
                 }
-                val intent = Intent(context, PhotoPickerActivity::class.java).apply {
-                    action = "ACTION_WIDGET_CLICK"
-                }
-                val pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+                val intent = Intent(context, PhotoPickerActivity::class.java)
+                val pendingIntent = PendingIntent.getActivity(
+                    context, 0, intent, PendingIntent.FLAG_IMMUTABLE
+                )
                 setOnClickPendingIntent(R.id.widget_root, pendingIntent)
             }
-            localRemoteViews?.let {
-                AppWidgetManager.getInstance(context).updateAppWidget(widgetId, it)
-            }
+            appWidgetManager.updateAppWidget(appWidgetId, remoteViews)
         }
     }
 

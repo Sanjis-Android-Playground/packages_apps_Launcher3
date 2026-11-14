@@ -18,17 +18,8 @@ package com.android.launcher3.widgets
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
-import android.os.BatteryManager
-import android.os.Handler
-import android.os.Looper
-import android.widget.RemoteViews
-import kotlinx.coroutines.*
-import java.util.concurrent.TimeUnit
 
 abstract class BaseWidgetProvider : AppWidgetProvider() {
-
-    private val coroutineScope = CoroutineScope(Dispatchers.Main)
-    private var job: Job? = null
 
     override fun onUpdate(
         context: Context,
@@ -37,37 +28,20 @@ abstract class BaseWidgetProvider : AppWidgetProvider() {
     ) {
         super.onUpdate(context, appWidgetManager, appWidgetIds)
         onWidgetUpdate(context)
-        schedulePolling(context)
+        WidgetRefreshReceiver.register(context)
     }
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
-        schedulePolling(context)
+        WidgetRefreshReceiver.register(context)
     }
 
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
-        cancelPolling()
-    }
-
-    protected fun schedulePolling(context: Context) {
-        cancelPolling()
-        job = coroutineScope.launch {
-            while (isActive) {
-                delay(2000)
-                performScheduledTask(context)
-            }
-        }
-    }
-
-    private fun cancelPolling() {
-        job?.cancel() 
-        job = null
+        WidgetRefreshReceiver.unregisterIfUnused(context)
     }
 
     abstract fun getLayoutId(): Int
 
     abstract fun onWidgetUpdate(context: Context)
-
-    open suspend fun performScheduledTask(context: Context) {}
 }

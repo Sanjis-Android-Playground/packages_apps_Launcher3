@@ -7,8 +7,9 @@
     android:maxResizeHeight="80dp"
     android:targetCellWidth="1"
     android:targetCellHeight="1"
-    android:updatePeriodMillis="0"
+    android:updatePeriodMillis="1800000"
     android:resizeMode="none"
+    android:configure="com.android.launcher3.widgets.TileWidgetConfigActivity"
     android:widgetCategory="home_screen"
     android:previewLayout="@layout/widget_data_tile" />
 

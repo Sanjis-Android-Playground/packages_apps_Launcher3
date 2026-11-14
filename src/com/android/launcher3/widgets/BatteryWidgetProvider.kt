@@ -15,21 +15,23 @@
  */
 package com.android.launcher3.widgets
 
+import android.app.AppOpsManager
 import android.app.PendingIntent
 import android.app.usage.UsageStatsManager
 import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.graphics.BlendMode
-import android.graphics.BlendModeColorFilter
+import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
-import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.os.BatteryManager
-import android.os.SystemClock
+import android.os.Build
+import android.os.Process
 import android.provider.Settings
 import android.util.TypedValue
 import android.widget.RemoteViews
@@ -40,105 +42,99 @@ import com.android.launcher3.R
 
 class BatteryWidgetProvider : BaseWidgetProvider() {
 
-    private var previousBatteryInfo: String? = null
-    private var appWidgetIds: IntArray? = null
-    private var remoteViews: RemoteViews? = null
-
     override fun getLayoutId(): Int = R.layout.widget_battery
 
     override fun onWidgetUpdate(context: Context) {
-        if (appWidgetIds == null) {
-            appWidgetIds = AppWidgetManager.getInstance(context).getAppWidgetIds(
-                android.content.ComponentName(context, BatteryWidgetProvider::class.java)
-            )
-        }
-        if (remoteViews == null) {
-            remoteViews = RemoteViews(context.packageName, getLayoutId())
-        }
-        update(context)
-    }
-
-    override suspend fun performScheduledTask(context: Context) {
         update(context)
     }
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        if (intent.action == "ACTION_WIDGET_CLICK") {
+        if (intent.action == ACTION_WIDGET_CLICK) {
             update(context)
-            schedulePolling(context)
-            val batterySaverIntent = Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            // Without usage access there is no screen time to show, so send the user to the
+            // screen that lets them grant it instead of the battery saver screen.
+            val target = if (hasUsageStatsAccess(context)) {
+                Settings.ACTION_BATTERY_SAVER_SETTINGS
+            } else {
+                Settings.ACTION_USAGE_ACCESS_SETTINGS
             }
-            context.startActivity(batterySaverIntent)
+            context.startActivity(Intent(target).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            })
         }
     }
 
     private fun update(context: Context) {
-        if (appWidgetIds == null || remoteViews == null) return
+        val appWidgetManager = AppWidgetManager.getInstance(context)
+        val appWidgetIds = appWidgetManager.getAppWidgetIds(
+            ComponentName(context, BatteryWidgetProvider::class.java)
+        )
+        if (appWidgetIds.isEmpty()) return
         val batteryInfo = getBatteryInfo(context)
-        val deviceName = android.os.Build.MODEL
-        if (batteryInfo == previousBatteryInfo) return
-        previousBatteryInfo = batteryInfo
-        appWidgetIds!!.forEach { appWidgetId ->
-            remoteViews!!.apply {
-                setTextViewText(R.id.batteryLevel, batteryInfo)
-                setImageViewBitmap(R.id.phone_icon, getWidgetIcon(context, batteryInfo))
-                setTextViewText(R.id.deviceName, deviceName)
-                val intent = Intent(context, BatteryWidgetProvider::class.java).apply {
-                    action = "ACTION_WIDGET_CLICK"
-                }
-                val pendingIntent = PendingIntent.getBroadcast(
-                    context, 0, intent, PendingIntent.FLAG_IMMUTABLE
-                )
-                setOnClickPendingIntent(R.id.batteryRootLayout, pendingIntent)
+        val deviceName = Build.MODEL
+        val remoteViews = RemoteViews(context.packageName, getLayoutId()).apply {
+            setTextViewText(R.id.batteryLevel, batteryInfo)
+            setImageViewBitmap(R.id.phone_icon, getWidgetIcon(context, batteryInfo))
+            setTextViewText(R.id.deviceName, deviceName)
+            val intent = Intent(context, BatteryWidgetProvider::class.java).apply {
+                action = ACTION_WIDGET_CLICK
             }
-            AppWidgetManager.getInstance(context).updateAppWidget(appWidgetId, remoteViews)
+            val pendingIntent = PendingIntent.getBroadcast(
+                context, 0, intent, PendingIntent.FLAG_IMMUTABLE
+            )
+            setOnClickPendingIntent(R.id.batteryRootLayout, pendingIntent)
         }
+        appWidgetIds.forEach { appWidgetManager.updateAppWidget(it, remoteViews) }
     }
 
     private fun getBatteryInfo(context: Context): String {
         val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
         val batteryLevel = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-        val intent = context.registerReceiver(null, android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED))
-        val currentCharging = intent?.getIntExtra("max_charging_current", -1) ?: -1
-        val isCharging = intent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) == BatteryManager.BATTERY_STATUS_CHARGING
-        val totalScreenTime = getTotalScreenTime(context)
-        return if (isCharging) {
+        val batteryIntent = context.registerReceiver(
+            null, IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+        )
+        val currentCharging = batteryIntent?.getIntExtra("max_charging_current", -1) ?: -1
+        val isCharging = batteryIntent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ==
+            BatteryManager.BATTERY_STATUS_CHARGING
+        if (isCharging) {
             val currentText = if (currentCharging.toString().length >= 5) {
                 (currentCharging / 1000).toString()
             } else {
                 currentCharging.toString()
             }
-            "$batteryLevel% - ${currentText}mA"
-        } else {
-            val screenTimeText = formatScreenTime(totalScreenTime)
-            "$batteryLevel% - $screenTimeText"
+            return "$batteryLevel% - ${currentText}mA"
         }
+        // Screen time is only meaningful when the usage access app op was granted, otherwise
+        // the widget would show a misleading "0 H 0".
+        val screenTime = getTotalScreenTime(context) ?: return "$batteryLevel%"
+        return "$batteryLevel% - ${formatScreenTime(screenTime)}"
     }
 
-    private fun getTotalScreenTime(context: Context): Long {
-        val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+    private fun hasUsageStatsAccess(context: Context): Boolean {
+        val appOpsManager = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+        return appOpsManager.unsafeCheckOpNoThrow(
+            AppOpsManager.OPSTR_GET_USAGE_STATS,
+            Process.myUid(),
+            context.packageName
+        ) == AppOpsManager.MODE_ALLOWED
+    }
+
+    private fun getTotalScreenTime(context: Context): Long? {
+        if (!hasUsageStatsAccess(context)) return null
+        val usageStatsManager =
+            context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         val endTime = System.currentTimeMillis()
         val startTime = endTime - 24 * 60 * 60 * 1000
-
-        val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
-        
-        if (stats.isNullOrEmpty()) {
-            return 0
-        }
-        
-        var totalScreenTime = 0L
-        for (usageStat in stats) {
-            totalScreenTime += usageStat.totalTimeInForeground
-        }
-        return totalScreenTime / (1000 * 60)
+        val stats = usageStatsManager.queryUsageStats(
+            UsageStatsManager.INTERVAL_DAILY, startTime, endTime
+        )
+        if (stats.isNullOrEmpty()) return 0
+        return stats.sumOf { it.totalTimeInForeground } / (1000 * 60)
     }
 
     private fun formatScreenTime(minutes: Long): String {
-        val hours = minutes / 60
-        val mins = minutes % 60
-        return "$hours H $mins"
+        return "${minutes / 60} H ${minutes % 60}"
     }
 
     private fun getWidgetIcon(context: Context, batteryInfo: String): Bitmap {
@@ -147,6 +143,13 @@ class BatteryWidgetProvider : BaseWidgetProvider() {
     }
 
     companion object {
+        private const val ACTION_WIDGET_CLICK =
+            "com.android.launcher3.widgets.action.BATTERY_WIDGET_CLICK"
+
+        fun refresh(context: Context) {
+            BatteryWidgetProvider().onWidgetUpdate(context)
+        }
+
         fun generateBitmap(
             context: Context,
             percentage: Int,

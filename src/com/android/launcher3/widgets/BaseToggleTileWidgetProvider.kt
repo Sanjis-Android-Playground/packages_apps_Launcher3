@@ -20,12 +20,10 @@ import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
+
 import com.android.launcher3.R
 
 abstract class BaseToggleTileWidgetProvider : BaseToggleWidgetProvider() {
-
-    private var remoteViews: RemoteViews? = null
-    private var previousState: Any? = null
 
     abstract fun toggleService(context: Context)
 
@@ -33,7 +31,6 @@ abstract class BaseToggleTileWidgetProvider : BaseToggleWidgetProvider() {
     protected abstract fun getActionString(): String
 
     override fun onUpdate(context: Context) {
-        initializeState(context)
         updateWidget(context)
     }
 
@@ -41,46 +38,41 @@ abstract class BaseToggleTileWidgetProvider : BaseToggleWidgetProvider() {
         super.onReceive(context, intent)
         if (intent.action == getActionString()) {
             toggleService(context)
-            initializeState(context)
             updateWidget(context)
-            schedulePolling(context)
         }
     }
 
     override fun updateWidget(context: Context) {
         val appWidgetIds = getAppWidgetIds(context)
-        if (appWidgetIds == null || appWidgetIds!!.isEmpty() || remoteViews == null) return
-        val currentState = isServiceActive(context)
-        if (previousState == currentState) return
-        previousState = currentState
+        if (appWidgetIds.isEmpty()) return
         val isActive = isServiceActive(context)
+        val appWidgetManager = AppWidgetManager.getInstance(context)
         appWidgetIds.forEach { appWidgetId ->
-            remoteViews!!.apply {
-                setInt(R.id.widget_root, "setBackgroundColor", context.getColor(
-                    if (isActive) R.color.battery_device_primary_color else R.color.battery_device_secondary_color
+            val remoteViews = RemoteViews(context.packageName, getLayoutId()).apply {
+                setInt(R.id.widget_root, "setBackgroundResource", WidgetShapes.getBackground(
+                    WidgetShapes.getShape(context, appWidgetId), isActive
                 ))
                 setInt(R.id.widget_icon, "setColorFilter", context.getColor(
-                    if (isActive) R.color.battery_device_secondary_color else R.color.battery_device_primary_color
+                    if (isActive) R.color.battery_device_secondary_color
+                    else R.color.battery_device_primary_color
                 ))
                 setImageViewResource(R.id.widget_icon, getIconResource(isActive))
-                val toggleIntent = getToggleActionIntent(context, appWidgetId)
                 val pendingIntent = PendingIntent.getBroadcast(
                     context,
                     appWidgetId,
-                    toggleIntent,
+                    getToggleActionIntent(context, appWidgetId),
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
                 setOnClickPendingIntent(R.id.widget_root, pendingIntent)
             }
-            AppWidgetManager.getInstance(context).updateAppWidget(appWidgetId, remoteViews)
-        }
-    }
-
-    private fun initializeState(context: Context) {
-        if (remoteViews == null) {
-            remoteViews = RemoteViews(context.packageName, getLayoutId())
+            appWidgetManager.updateAppWidget(appWidgetId, remoteViews)
         }
     }
 
     protected abstract fun getAppWidgetIds(context: Context): IntArray
+
+    override fun onDeleted(context: Context, appWidgetIds: IntArray) {
+        super.onDeleted(context, appWidgetIds)
+        appWidgetIds.forEach { WidgetShapes.clearShape(context, it) }
+    }
 }

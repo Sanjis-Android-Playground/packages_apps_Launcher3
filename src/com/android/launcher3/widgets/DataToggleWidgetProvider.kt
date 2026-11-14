@@ -27,6 +27,12 @@ import com.android.launcher3.R
 
 class DataToggleWidgetProvider : BaseToggleTileWidgetProvider() {
 
+    companion object {
+        fun refresh(context: Context) {
+            DataToggleWidgetProvider().updateWidget(context)
+        }
+    }
+
     private var appWidgetIds: IntArray? = null
 
     override fun getLayoutId() = R.layout.widget_data_tile

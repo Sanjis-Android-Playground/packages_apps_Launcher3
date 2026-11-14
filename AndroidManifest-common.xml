@@ -336,13 +336,12 @@
         </receiver>
 
         <activity android:name=".widgets.PhotoPickerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar" />
+
+        <activity android:name=".widgets.TileWidgetConfigActivity"
             android:exported="true"
-            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
-            <intent-filter>
-                <action android:name="android.intent.action.PICK" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
+            android:theme="@style/Theme.AppCompat.DayNight.NoActionBar" />
 
         <receiver
             android:name=".widgets.WifiWidgetProvider"

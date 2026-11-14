@@ -5,5 +5,6 @@
     android:minHeight="80dp"
     android:minResizeWidth="80dp"
     android:minResizeHeight="40dp"
+    android:updatePeriodMillis="1800000"
     android:widgetCategory="home_screen"
     android:previewLayout="@layout/widget_photo" />

@@ -698,4 +698,13 @@
     <string name="widget_data_title">Data widget</string>
     <string name="widget_bt_title">Bluetooth widget</string>
     <string name="photo_widget_onboarding">Click to add new photo</string>
+    <string name="photo_widget_selected">Photo selected for widget</string>
+    <string name="photo_widget_save_failed">Failed to save the photo</string>
+    <string name="widget_tile_shape_title">Widget shape</string>
+    <string name="widget_tile_shape_rounded">Rounded</string>
+    <string name="widget_tile_shape_squircle">Squircle</string>
+    <string name="widget_tile_shape_circle">Circle</string>
+    <string name="widget_tile_shape_square">Square</string>
+    <string name="widget_tile_shape_apply">Apply</string>
+    <string name="widget_tile_shape_cancel">Cancel</string>
 </resources>

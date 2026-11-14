@@ -25,6 +25,12 @@ import com.android.launcher3.R
 
 class WifiWidgetProvider : BaseToggleTileWidgetProvider() {
 
+    companion object {
+        fun refresh(context: Context) {
+            WifiWidgetProvider().updateWidget(context)
+        }
+    }
+
     private var appWidgetIds: IntArray? = null
 
     override fun getLayoutId() = R.layout.widget_wifi_tile

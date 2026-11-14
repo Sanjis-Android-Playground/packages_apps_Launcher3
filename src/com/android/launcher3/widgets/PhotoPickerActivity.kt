@@ -15,27 +15,24 @@
  */
 package com.android.launcher3.widgets
 
-import android.app.Activity
-import android.app.PendingIntent
-import android.appwidget.AppWidgetManager
-import android.content.Context
 import android.content.ContentResolver
-import android.content.ComponentName
-import android.content.Intent
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
-import android.provider.MediaStore
+import android.os.UserHandle
 import android.provider.Settings
 import android.widget.Button
-import android.widget.RemoteViews
 import android.widget.Switch
 import android.widget.Toast
 
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
 import androidx.appcompat.app.AppCompatDelegate
+
+import com.android.launcher3.R
 
 import java.io.File
 import java.io.FileOutputStream
@@ -45,29 +42,36 @@ import java.nio.charset.StandardCharsets
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import android.os.UserHandle
-
-import com.android.launcher3.R
 
 class PhotoPickerActivity : AppCompatActivity() {
 
-    private val PICK_PHOTO_REQUEST_CODE = 1
     private lateinit var switchGrayscale: Switch
+
+    /**
+     * Uses the system photo picker instead of an implicit [android.content.Intent.ACTION_PICK].
+     * The launcher itself declares an ACTION_PICK handler, so the implicit intent showed the
+     * launcher twice in the chooser.
+     */
+    private val pickPhoto =
+        registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri != null) {
+                savePhoto(uri)
+            }
+            finish()
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_photo_picker)
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
 
-        // Initialize the class property directly with null check
         switchGrayscale = findViewById(R.id.switchGrayscale) ?: return
         val pickPhotoButton: Button? = findViewById(R.id.btnPickPhoto)
 
-        // Set initial state and listener
         val isGrayscale = Settings.System.getIntForUser(
-            contentResolver, 
-            "home_photo_widget_grayscale", 
-            0, 
+            contentResolver,
+            "home_photo_widget_grayscale",
+            0,
             UserHandle.USER_CURRENT
         ) == 1
         switchGrayscale.isChecked = isGrayscale
@@ -75,57 +79,40 @@ class PhotoPickerActivity : AppCompatActivity() {
         switchGrayscale.setOnCheckedChangeListener { _, isChecked ->
             val resolver: ContentResolver = applicationContext.contentResolver
             Settings.System.putIntForUser(
-                resolver, 
-                "home_photo_widget_grayscale", 
-                if (isChecked) 1 else 0, 
+                resolver,
+                "home_photo_widget_grayscale",
+                if (isChecked) 1 else 0,
                 UserHandle.USER_CURRENT
             )
-            val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE)
-            val appWidgetManager = AppWidgetManager.getInstance(applicationContext)
-            val widgetIds = appWidgetManager.getAppWidgetIds(ComponentName(applicationContext, PhotoWidgetProvider::class.java))
-            intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, widgetIds)
-            sendBroadcast(intent)
+            WidgetRefreshReceiver.refreshAll(applicationContext)
         }
 
         pickPhotoButton?.setOnClickListener {
-            val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-            startActivityForResult(intent, PICK_PHOTO_REQUEST_CODE)
+            pickPhoto.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            )
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == RESULT_OK && requestCode == PICK_PHOTO_REQUEST_CODE) {
-            val photoUri: Uri? = data?.data
-            photoUri?.let {
-                val savedImagePath = saveImageToInternalStorage(applicationContext, it, "home_widget", "HOME_WIDGET_PHOTO")
-                if (savedImagePath != null) {
-                    val resolver: ContentResolver = applicationContext.contentResolver
-                    Settings.System.putStringForUser(resolver, "home_photo_widget_uri", savedImagePath, UserHandle.USER_CURRENT)
-                    val isGrayscale = switchGrayscale.isChecked
-                    Settings.System.putIntForUser(
-                        resolver,
-                        "home_photo_widget_grayscale",
-                        if (isGrayscale) 1 else 0,
-                        UserHandle.USER_CURRENT
-                    )
-                    val appWidgetManager = AppWidgetManager.getInstance(applicationContext)
-                    val widgetIds = appWidgetManager.getAppWidgetIds(ComponentName(applicationContext, PhotoWidgetProvider::class.java))
-                    widgetIds.forEach { widgetId ->
-                        val remoteViews = RemoteViews(applicationContext.packageName, R.layout.widget_photo)
-                        remoteViews.setImageViewUri(R.id.widget_image, Uri.parse(savedImagePath))
-                        val intent = Intent(applicationContext, PhotoPickerActivity::class.java)
-                        val pendingIntent = PendingIntent.getActivity(applicationContext, 0, intent, PendingIntent.FLAG_IMMUTABLE)
-                        remoteViews.setOnClickPendingIntent(R.id.widget_image, pendingIntent)
-                        appWidgetManager.updateAppWidget(widgetId, remoteViews)
-                    }
-                    Toast.makeText(this, "Photo selected for widget", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this, "Failed to save the photo", Toast.LENGTH_SHORT).show()
-                }
-            }
-            finish()
+    private fun savePhoto(photoUri: Uri) {
+        val savedImagePath =
+            saveImageToInternalStorage(applicationContext, photoUri, "home_widget", "HOME_WIDGET_PHOTO")
+        if (savedImagePath == null) {
+            Toast.makeText(this, R.string.photo_widget_save_failed, Toast.LENGTH_SHORT).show()
+            return
         }
+        val resolver: ContentResolver = applicationContext.contentResolver
+        Settings.System.putStringForUser(
+            resolver, "home_photo_widget_uri", savedImagePath, UserHandle.USER_CURRENT
+        )
+        Settings.System.putIntForUser(
+            resolver,
+            "home_photo_widget_grayscale",
+            if (switchGrayscale.isChecked) 1 else 0,
+            UserHandle.USER_CURRENT
+        )
+        WidgetRefreshReceiver.refreshAll(applicationContext)
+        Toast.makeText(this, R.string.photo_widget_selected, Toast.LENGTH_SHORT).show()
     }
 
     private fun saveImageToInternalStorage(context: Context, imgUri: Uri, featurePath: String, filePrefix: String): String? {
@@ -142,7 +129,7 @@ class PhotoPickerActivity : AppCompatActivity() {
                     throw Exception("Failed to parse Google Photos content URI")
                 }
             }
-            val bitmap = BitmapFactory.decodeStream(inputStream)
+            val bitmap = BitmapFactory.decodeStream(inputStream) ?: return null
             val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
             val imageFileName = "$filePrefix" + "_$timeStamp.png"
 
