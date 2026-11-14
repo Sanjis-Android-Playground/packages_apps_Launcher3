@@ -59,32 +59,32 @@ class PhotoPickerActivity : AppCompatActivity() {
         setContentView(R.layout.activity_photo_picker)
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
 
-        val switchGrayscale: Switch? = findViewById(R.id.switchGrayscale)
+        // Initialize the class property directly with null check
+        switchGrayscale = findViewById(R.id.switchGrayscale) ?: return
         val pickPhotoButton: Button? = findViewById(R.id.btnPickPhoto)
 
-        switchGrayscale?.let { switch ->
-            val isGrayscale = Settings.System.getIntForUser(
-                contentResolver, 
-                "home_photo_widget_grayscale", 
-                0, 
-                UserHandle.USER_CURRENT
-            ) == 1
-            switch.isChecked = isGrayscale
+        // Set initial state and listener
+        val isGrayscale = Settings.System.getIntForUser(
+            contentResolver, 
+            "home_photo_widget_grayscale", 
+            0, 
+            UserHandle.USER_CURRENT
+        ) == 1
+        switchGrayscale.isChecked = isGrayscale
 
-            switch.setOnCheckedChangeListener { _, isChecked ->
-                val resolver: ContentResolver = applicationContext.contentResolver
-                Settings.System.putIntForUser(
-                    resolver, 
-                    "home_photo_widget_grayscale", 
-                    if (isChecked) 1 else 0, 
-                    UserHandle.USER_CURRENT
-                )
-                val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE)
-                val appWidgetManager = AppWidgetManager.getInstance(applicationContext)
-                val widgetIds = appWidgetManager.getAppWidgetIds(ComponentName(applicationContext, PhotoWidgetProvider::class.java))
-                intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, widgetIds)
-                sendBroadcast(intent)
-            }
+        switchGrayscale.setOnCheckedChangeListener { _, isChecked ->
+            val resolver: ContentResolver = applicationContext.contentResolver
+            Settings.System.putIntForUser(
+                resolver, 
+                "home_photo_widget_grayscale", 
+                if (isChecked) 1 else 0, 
+                UserHandle.USER_CURRENT
+            )
+            val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE)
+            val appWidgetManager = AppWidgetManager.getInstance(applicationContext)
+            val widgetIds = appWidgetManager.getAppWidgetIds(ComponentName(applicationContext, PhotoWidgetProvider::class.java))
+            intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, widgetIds)
+            sendBroadcast(intent)
         }
 
         pickPhotoButton?.setOnClickListener {
@@ -164,4 +164,3 @@ class PhotoPickerActivity : AppCompatActivity() {
         return null
     }
 }
-
