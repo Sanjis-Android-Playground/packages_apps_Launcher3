@@ -49,12 +49,13 @@ class TileWidgetConfigActivity : AppCompatActivity() {
             WidgetShapes.SQUIRCLE to findViewById(R.id.shape_squircle),
             WidgetShapes.CIRCLE to findViewById(R.id.shape_circle),
             WidgetShapes.SQUARE to findViewById(R.id.shape_square),
+            WidgetShapes.HEART to findViewById(R.id.shape_heart),
         )
         shapeCards.forEach { (shape, card) ->
             card.contentDescription = getShapeLabel(shape)
             card.setOnClickListener { select(shape, apply = true) }
         }
-        select(WidgetShapes.getShape(this), apply = false)
+        select(WidgetShapes.getShape(this, appWidgetId), apply = false)
 
         findViewById<Button>(R.id.btn_cancel).setOnClickListener { finish() }
         findViewById<Button>(R.id.btn_apply).setOnClickListener {
@@ -83,7 +84,7 @@ class TileWidgetConfigActivity : AppCompatActivity() {
             card.strokeWidth = if (isSelected) selectedWidth else defaultWidth
         }
         if (apply) {
-            WidgetShapes.setShape(this, shape)
+            WidgetShapes.setShape(this, appWidgetId, shape)
             WidgetRefreshReceiver.refreshAll(this)
         }
     }
@@ -94,6 +95,7 @@ class TileWidgetConfigActivity : AppCompatActivity() {
                 WidgetShapes.SQUIRCLE -> R.string.widget_tile_shape_squircle
                 WidgetShapes.CIRCLE -> R.string.widget_tile_shape_circle
                 WidgetShapes.SQUARE -> R.string.widget_tile_shape_square
+                WidgetShapes.HEART -> R.string.widget_tile_shape_heart
                 else -> R.string.widget_tile_shape_rounded
             }
         )

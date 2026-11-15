@@ -706,6 +706,7 @@
     <string name="widget_tile_shape_squircle">Squircle</string>
     <string name="widget_tile_shape_circle">Circle</string>
     <string name="widget_tile_shape_square">Square</string>
+    <string name="widget_tile_shape_heart">Heart</string>
     <string name="widget_tile_shape_apply">Apply</string>
     <string name="widget_tile_shape_cancel">Cancel</string>
 </resources>

@@ -65,7 +65,22 @@ class PhotoWidgetProvider : BaseWidgetProvider() {
             ?.let { if (isGrayscale) applyGrayscale(it) else it }
             ?.let { compress(it) }
         appWidgetIds.forEach { appWidgetId ->
+            val shape = WidgetShapes.getShape(context, appWidgetId)
+            // The heart is a non-convex path, so the framework cannot clip the photo to it.
+            // Inset the photo instead so the heart stays visible around it.
+            val heartInset = if (shape == WidgetShapes.HEART) {
+                (8 * context.resources.displayMetrics.density).toInt()
+            } else {
+                0
+            }
             val remoteViews = RemoteViews(context.packageName, getLayoutId()).apply {
+                // The shape lives on the view carrying android.R.id.background so the launcher
+                // clips the widget to the selected outline.
+                setInt(android.R.id.background, "setBackgroundResource",
+                    WidgetShapes.getBackground(shape, false))
+                setViewPadding(
+                    R.id.widget_image, heartInset, heartInset, heartInset, heartInset
+                )
                 if (bitmap != null) {
                     setImageViewBitmap(R.id.widget_image, bitmap)
                     setViewVisibility(R.id.widget_image, View.VISIBLE)
@@ -78,7 +93,7 @@ class PhotoWidgetProvider : BaseWidgetProvider() {
                 val pendingIntent = PendingIntent.getActivity(
                     context, 0, intent, PendingIntent.FLAG_IMMUTABLE
                 )
-                setOnClickPendingIntent(R.id.widget_root, pendingIntent)
+                setOnClickPendingIntent(android.R.id.background, pendingIntent)
             }
             appWidgetManager.updateAppWidget(appWidgetId, remoteViews)
         }

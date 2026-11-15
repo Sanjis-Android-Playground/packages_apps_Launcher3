@@ -1,12 +1,12 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
+    android:id="@android:id/background"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="center"
-    android:background="@drawable/widget_background"
-    android:backgroundTint="@color/battery_device_secondary_color">
+    android:clipToOutline="true"
+    android:background="@drawable/widget_tile_rounded_off">
 
     <ImageView
         android:id="@+id/widget_image"
@@ -27,4 +27,3 @@
         android:textColor="@color/battery_device_primary_color"
         android:layout_gravity="center" />
 </LinearLayout>
-

@@ -15,6 +15,7 @@
  */
 package com.android.launcher3.widgets
 
+import android.appwidget.AppWidgetManager
 import android.content.Context
 
 import androidx.annotation.DrawableRes
@@ -22,12 +23,11 @@ import androidx.annotation.DrawableRes
 import com.android.launcher3.R
 
 /**
- * Shape used by the Rising tile widgets.
+ * Shape used by the Rising widgets.
  *
- * The value is global rather than per app widget id: the configure activity result runs through
- * the framework {@code AppWidgetConfigActivityProxy}, and when that result is lost the launcher
- * drops the widget that was just added. Keeping the choice global means the selection is already
- * applied on the next update and the user never has to set it up twice.
+ * Each widget keeps its own shape so changing one tile does not touch the others. A global
+ * default is used when a widget has not been configured yet (or when the configure activity
+ * was started without a valid app widget id).
  */
 object WidgetShapes {
 
@@ -35,21 +35,38 @@ object WidgetShapes {
     const val SQUIRCLE = "squircle"
     const val CIRCLE = "circle"
     const val SQUARE = "square"
+    const val HEART = "heart"
 
-    val all = listOf(ROUNDED, SQUIRCLE, CIRCLE, SQUARE)
+    val all = listOf(ROUNDED, SQUIRCLE, CIRCLE, SQUARE, HEART)
 
     private const val PREFS = "rising_widgets"
-    private const val KEY = "tile_shape"
+    private const val DEFAULT_KEY = "tile_shape"
+    private const val KEY_PREFIX = "tile_shape_"
 
-    fun getShape(context: Context): String {
-        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(KEY, ROUNDED) ?: ROUNDED
+    private fun key(appWidgetId: Int) = KEY_PREFIX + appWidgetId
+
+    fun getShape(context: Context, appWidgetId: Int): String {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+            prefs.getString(key(appWidgetId), null)?.let { return it }
+        }
+        return prefs.getString(DEFAULT_KEY, ROUNDED) ?: ROUNDED
     }
 
-    fun setShape(context: Context, shape: String) {
+    fun setShape(context: Context, appWidgetId: Int, shape: String) {
+        val editor = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+        if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
+            editor.putString(DEFAULT_KEY, shape)
+        } else {
+            editor.putString(key(appWidgetId), shape)
+        }
+        editor.apply()
+    }
+
+    fun clearShape(context: Context, appWidgetId: Int) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
-            .putString(KEY, shape)
+            .remove(key(appWidgetId))
             .apply()
     }
 
@@ -62,6 +79,8 @@ object WidgetShapes {
                 else R.drawable.widget_tile_circle_off
             SQUARE -> if (active) R.drawable.widget_tile_square_on
                 else R.drawable.widget_tile_square_off
+            HEART -> if (active) R.drawable.widget_tile_heart_on
+                else R.drawable.widget_tile_heart_off
             else -> if (active) R.drawable.widget_tile_rounded_on
                 else R.drawable.widget_tile_rounded_off
         }
