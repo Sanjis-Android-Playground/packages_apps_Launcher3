@@ -9,6 +9,7 @@
     android:targetCellHeight="1"
     android:updatePeriodMillis="1800000"
     android:resizeMode="none"
+    android:widgetFeatures="reconfigurable|configuration_optional"
     android:configure="com.android.launcher3.widgets.TileWidgetConfigActivity"
     android:widgetCategory="home_screen"
     android:previewLayout="@layout/widget_wifi_tile" />

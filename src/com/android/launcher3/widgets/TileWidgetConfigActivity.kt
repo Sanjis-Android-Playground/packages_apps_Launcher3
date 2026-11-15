@@ -27,25 +27,21 @@ import androidx.core.content.ContextCompat
 import com.android.launcher3.R
 import com.google.android.material.card.MaterialCardView
 
-/** Lets the user pick the shape of a Rising tile widget. */
+/** Lets the user pick the shape of the Rising tile widgets. */
 class TileWidgetConfigActivity : AppCompatActivity() {
 
     private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
     private lateinit var shapeCards: Map<String, MaterialCardView>
-    private var selectedShape = WidgetShapes.ROUNDED
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // The widget is only added when the user confirms the configuration.
         setResult(Activity.RESULT_CANCELED)
 
-        appWidgetId = intent?.extras?.getInt(
+        // The id can be missing when the framework proxy loses it. The shape is global, so the
+        // screen still works and the selection is applied immediately.
+        appWidgetId = intent?.getIntExtra(
             AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID
         ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
-        if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
-            finish()
-            return
-        }
 
         setContentView(R.layout.activity_tile_widget_config)
         shapeCards = mapOf(
@@ -54,16 +50,14 @@ class TileWidgetConfigActivity : AppCompatActivity() {
             WidgetShapes.CIRCLE to findViewById(R.id.shape_circle),
             WidgetShapes.SQUARE to findViewById(R.id.shape_square),
         )
-        selectedShape = WidgetShapes.getShape(this, appWidgetId)
         shapeCards.forEach { (shape, card) ->
             card.contentDescription = getShapeLabel(shape)
-            card.setOnClickListener { select(shape) }
+            card.setOnClickListener { select(shape, apply = true) }
         }
-        select(selectedShape)
+        select(WidgetShapes.getShape(this), apply = false)
 
         findViewById<Button>(R.id.btn_cancel).setOnClickListener { finish() }
         findViewById<Button>(R.id.btn_apply).setOnClickListener {
-            WidgetShapes.setShape(this, appWidgetId, selectedShape)
             WidgetRefreshReceiver.refreshAll(this)
             setResult(
                 Activity.RESULT_OK,
@@ -78,8 +72,7 @@ class TileWidgetConfigActivity : AppCompatActivity() {
      * non-final and get stripped by resource shrinking, so referencing them from code crashes
      * with {@link NoSuchFieldError}.
      */
-    private fun select(shape: String) {
-        selectedShape = shape
+    private fun select(shape: String, apply: Boolean) {
         val selectedColor = ContextCompat.getColor(this, R.color.tile_shape_selected)
         val defaultColor = ContextCompat.getColor(this, R.color.tile_shape_outline)
         val selectedWidth = (2 * resources.displayMetrics.density).toInt()
@@ -88,6 +81,10 @@ class TileWidgetConfigActivity : AppCompatActivity() {
             val isSelected = cardShape == shape
             card.strokeColor = if (isSelected) selectedColor else defaultColor
             card.strokeWidth = if (isSelected) selectedWidth else defaultWidth
+        }
+        if (apply) {
+            WidgetShapes.setShape(this, shape)
+            WidgetRefreshReceiver.refreshAll(this)
         }
     }
 

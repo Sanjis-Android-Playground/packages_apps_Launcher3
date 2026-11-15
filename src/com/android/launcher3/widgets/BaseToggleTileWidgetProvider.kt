@@ -53,9 +53,7 @@ abstract class BaseToggleTileWidgetProvider : BaseToggleWidgetProvider() {
                 // uses it as the widget background and clips the widget to its outline, so
                 // setting the shape here is what makes the selected shape visible.
                 setInt(android.R.id.background, "setBackgroundResource",
-                    WidgetShapes.getBackground(
-                        WidgetShapes.getShape(context, appWidgetId), isActive
-                    ))
+                    WidgetShapes.getBackground(WidgetShapes.getShape(context), isActive))
                 setInt(R.id.widget_icon, "setColorFilter", context.getColor(
                     if (isActive) R.color.battery_device_secondary_color
                     else R.color.battery_device_primary_color
@@ -74,9 +72,4 @@ abstract class BaseToggleTileWidgetProvider : BaseToggleWidgetProvider() {
     }
 
     protected abstract fun getAppWidgetIds(context: Context): IntArray
-
-    override fun onDeleted(context: Context, appWidgetIds: IntArray) {
-        super.onDeleted(context, appWidgetIds)
-        appWidgetIds.forEach { WidgetShapes.clearShape(context, it) }
-    }
 }

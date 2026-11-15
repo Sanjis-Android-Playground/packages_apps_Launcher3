@@ -21,7 +21,14 @@ import androidx.annotation.DrawableRes
 
 import com.android.launcher3.R
 
-/** Per widget tile shape, selected from [TileWidgetConfigActivity]. */
+/**
+ * Shape used by the Rising tile widgets.
+ *
+ * The value is global rather than per app widget id: the configure activity result runs through
+ * the framework {@code AppWidgetConfigActivityProxy}, and when that result is lost the launcher
+ * drops the widget that was just added. Keeping the choice global means the selection is already
+ * applied on the next update and the user never has to set it up twice.
+ */
 object WidgetShapes {
 
     const val ROUNDED = "rounded"
@@ -32,24 +39,17 @@ object WidgetShapes {
     val all = listOf(ROUNDED, SQUIRCLE, CIRCLE, SQUARE)
 
     private const val PREFS = "rising_widgets"
-    private const val KEY_PREFIX = "tile_shape_"
+    private const val KEY = "tile_shape"
 
-    fun getShape(context: Context, appWidgetId: Int): String {
+    fun getShape(context: Context): String {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(KEY_PREFIX + appWidgetId, ROUNDED) ?: ROUNDED
+            .getString(KEY, ROUNDED) ?: ROUNDED
     }
 
-    fun setShape(context: Context, appWidgetId: Int, shape: String) {
+    fun setShape(context: Context, shape: String) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
-            .putString(KEY_PREFIX + appWidgetId, shape)
-            .apply()
-    }
-
-    fun clearShape(context: Context, appWidgetId: Int) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit()
-            .remove(KEY_PREFIX + appWidgetId)
+            .putString(KEY, shape)
             .apply()
     }
 
