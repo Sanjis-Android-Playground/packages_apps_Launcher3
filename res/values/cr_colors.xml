@@ -51,6 +51,8 @@
     <color name="quickspace_clock_hour_color">#FFFE4543</color>
 
     <!-- Widgets -->
+    <color name="tile_shape_selected">@android:color/system_accent1_600</color>
+    <color name="tile_shape_outline">#1F000000</color>
     <color name="battery_device_primary_color">@android:color/system_accent1_200</color>
     <color name="battery_device_secondary_color">@android:color/system_neutral1_900</color>
 </resources>

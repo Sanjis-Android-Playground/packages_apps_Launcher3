@@ -45,4 +45,8 @@
     <color name="qsb_primary">@*android:color/system_accent3_100</color>
     <color name="qsb_secondary">@*android:color/system_accent1_300</color>
     <color name="qsb_quaternary">@*android:color/system_accent1_100</color>
+
+    <!-- Widgets -->
+    <color name="tile_shape_selected">@android:color/system_accent1_200</color>
+    <color name="tile_shape_outline">#33FFFFFF</color>
 </resources>

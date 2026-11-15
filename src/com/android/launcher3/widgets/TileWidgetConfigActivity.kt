@@ -19,14 +19,13 @@ import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
 import android.widget.Button
 
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 
 import com.android.launcher3.R
 import com.google.android.material.card.MaterialCardView
-import com.google.android.material.color.MaterialColors
 
 /** Lets the user pick the shape of a Rising tile widget. */
 class TileWidgetConfigActivity : AppCompatActivity() {
@@ -74,21 +73,21 @@ class TileWidgetConfigActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Resolves the stroke colour from launcher resources. Material's {@code R.attr} fields are
+     * non-final and get stripped by resource shrinking, so referencing them from code crashes
+     * with {@link NoSuchFieldError}.
+     */
     private fun select(shape: String) {
         selectedShape = shape
-        val selectedColor = MaterialColors.getColor(
-            shapeCards.getValue(shape), com.google.android.material.R.attr.colorPrimary
-        )
-        val outlineColor = MaterialColors.getColor(
-            shapeCards.getValue(shape), com.google.android.material.R.attr.colorOutline
-        )
-        val selectedWidth = (3 * resources.displayMetrics.density).toInt()
+        val selectedColor = ContextCompat.getColor(this, R.color.tile_shape_selected)
+        val defaultColor = ContextCompat.getColor(this, R.color.tile_shape_outline)
+        val selectedWidth = (2 * resources.displayMetrics.density).toInt()
         val defaultWidth = (1 * resources.displayMetrics.density).toInt()
         shapeCards.forEach { (cardShape, card) ->
             val isSelected = cardShape == shape
-            card.strokeColor = if (isSelected) selectedColor else outlineColor
+            card.strokeColor = if (isSelected) selectedColor else defaultColor
             card.strokeWidth = if (isSelected) selectedWidth else defaultWidth
-            card.isChecked = isSelected
         }
     }
 
